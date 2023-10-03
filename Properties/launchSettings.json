@@ -12,7 +12,7 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "AmericanQuestions/GetQuestions",
+      "launchUrl": "AmericanQuestions/Hello",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

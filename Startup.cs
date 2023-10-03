@@ -38,6 +38,13 @@ namespace TriviaWebAPI
                 Password = "kaka",
                 Questions = userQuestions
             });
+            users.Add(new User
+            {
+                Email = "chuku@muku.com",
+                NickName = "chuku muku",
+                Password = "1234"
+
+            });
             return users;
         }
         private List<AmericanQuestion> InitQuestions()

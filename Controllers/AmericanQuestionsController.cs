@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using TriviaWebAPI.DataTransferObjects;
 
 namespace TriviaWebAPI.Controllers
@@ -21,29 +22,50 @@ namespace TriviaWebAPI.Controllers
             this.questions = data.Questions;
             this.users = data.Users;
         }
-        
-        [Route("Login")]
-        [HttpGet]
-        public User Login([FromQuery] string email, [FromQuery] string pass)
+        [Route ("Hello")]
+        public async Task<IActionResult> Hello()
         {
-            bool found = false;
+            return  Ok("hello World");
+        }
+
+        [Route("Login")]
+        //[HttpGet]
+        [HttpPost]
+        public async  Task<ActionResult<User>> Login([FromBody] User usr)
+        {
+            
             User user = null;
             //Search for user
             foreach (User u in users)
             {
                 //Check user name and password
-                if (u.Email == email && u.Password == pass)
+                if (u.Email == usr.Email && u.Password == usr.Password)
                 {
                     user = u;
-                    found = true;
+                    
                     HttpContext.Session.SetObject("user", u.NickName);
-                    Response.StatusCode = (int)System.Net.HttpStatusCode.OK;
+                    return Ok(user);    
                 }
             }
             //Check user name and password
-            if (!found)
-                Response.StatusCode = (int)System.Net.HttpStatusCode.Forbidden;
-            return user;
+            
+               return Forbid();
+           
+        }
+
+
+
+        [Route ("GetUserEmail")]
+        [HttpGet]
+
+        public async Task<ActionResult> GetUserEmail([FromQuery] string nick)
+        {
+            foreach(User u in users)
+            {
+                if (u.NickName == nick)
+                    return Ok(u.Email);
+            }
+            return NotFound();
         }
 
         [Route("GetAllQuestions")]
@@ -138,7 +160,7 @@ namespace TriviaWebAPI.Controllers
                     u.Questions = new List<AmericanQuestion>();
 
                 this.users.Add(u);
-                Login(u.Email, u.Password);
+                Login(u);
                 return true;
             }
             else
