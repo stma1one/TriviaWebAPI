@@ -21,6 +21,8 @@ namespace TriviaWebAPI
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+
+                   
                 });
     }
 }

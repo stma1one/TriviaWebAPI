@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using TriviaWebAPI.DataTransferObjects;
 
 namespace TriviaWebAPI.Controllers
@@ -22,15 +23,30 @@ namespace TriviaWebAPI.Controllers
             this.questions = data.Questions;
             this.users = data.Users;
         }
+        /// <summary>
+        /// פעולה המחזירה את הטקסט 
+        /// hello world
+        /// משמשת רק לצורך בדיקה
+        /// </summary>
+        /// <returns></returns>
         [Route ("Hello")]
+        [HttpGet]
         public async Task<IActionResult> Hello()
         {
             return  Ok("hello World");
         }
 
+        /// <summary>
+        /// פעולת התחברות
+        /// </summary>
+        /// <param name="usr">אובייקט מסוג יוזר</param>
+        /// <returns> אוביקט משתמש</returns>
+        /// <response code="200">מחזיר את אובייקט המשתמש שהתחבר</response>
+        /// <response code="403">מחזיר null  אם יש בעית בשם משתמש או סיסמה</response>
         [Route("Login")]
         //[HttpGet]
         [HttpPost]
+        
         public async  Task<ActionResult<User>> Login([FromBody] User usr)
         {
             
@@ -53,7 +69,13 @@ namespace TriviaWebAPI.Controllers
            
         }
 
-
+        /// <summary>
+        /// פעולה המקבלת שם של משתמש ומחזירה את האימייל שלו
+        /// </summary>
+        /// <param name="nick">שם היוזר</param>
+        /// <returns>האימייל של היוזר</returns>
+        /// <response code="200">מחזיר את המייל</response>
+        /// <response code="404">אם לא נמצא יוזר כזה</response>
 
         [Route ("GetUserEmail")]
         [HttpGet]
@@ -68,34 +90,60 @@ namespace TriviaWebAPI.Controllers
             return NotFound();
         }
 
+        /// <summary>
+        /// מחזירה את כל השאלות 
+        /// </summary>
+        /// <param name="secret">מילת הקוד המאפשרת קבלת הנתונים</param>
+        /// <returns>אוסף כל השאלות</returns>
+        /// <response code="200">אוסף כל השאלות </response>
+        /// <response code="404">מערך ריק של אם הקוד לא תקין </response>
+        /// </response>
         [Route("GetAllQuestions")]
         [HttpGet]
-        public List<AmericanQuestion> GetAllQuestions([FromQuery] string secret)
+        public async Task<ActionResult<List<AmericanQuestion>>> GetAllQuestions([FromQuery] string secret)
         {
             if (secret == "kuku")
-                return this.questions;
-            return new List<AmericanQuestion>();
+                return Ok(this.questions);
+            return Unauthorized(new List<AmericanQuestion>());
         }
-
+        /// <summary>
+        /// פעולה המחזירה את כל המשתמשים בהנתן מילת הקוד
+        /// </summary>
+        /// <param name="secret">מילת הקוד</param>
+        /// <returns>מערך משתמשים</returns>
+        /// <response code="200">רשימת כל המשתמשים</response>
+        /// <response code="403">רשימה  ריקה של משתמשים</response>
         [Route("GetAllUsers")]
         [HttpGet]
-        public List<User> GetAllUsers([FromQuery] string secret)
+        public async Task<ActionResult<List<User>>> GetAllUsers([FromQuery] string secret)
         {
             if (secret == "kuku")
-                return this.users;
-            return new List<User>();
+                return Ok(this.users);
+            return Unauthorized(new List<User>());
         }
 
+        /// <summary>
+        /// פעולה המחזירה שאלה אקראית מהמאגר
+        /// </summary>
+        /// <returns>שאלה אמריקאית</returns>
+        /// <response code="200">שאלה אמריקאית רנדומלית מהמאגר</response>
         [Route("GetRandomQuestion")]
         [HttpGet]
-        public AmericanQuestion GetRandomQuestion()
+        public async Task<ActionResult<AmericanQuestion>> GetRandomQuestion()
         {
-            return this.questions[r.Next(this.questions.Count)];
+            return Ok(this.questions[r.Next(this.questions.Count)]);
         }
-
+        /// <summary>
+        /// הכנסת שאלה חדשה למאגר.
+        /// מותנה בביצוע לוגאין
+        /// </summary>
+        /// <param name="q">שאלה חדשה להכנסה למאחר</param>
+        /// <returns>אמת אם הצלחי ושקר אחרת</returns>
+        /// <response code="201">השאלה התווספה</response>
+        /// <response code="403">אין הרשאה</response>
         [Route("PostNewQuestion")]
         [HttpPost]
-        public bool PostNewQuestion([FromBody] AmericanQuestion q)
+        public async Task<ActionResult<bool>> PostNewQuestion([FromBody] AmericanQuestion q)
         {
             //check if login was made
             string user = HttpContext.Session.GetObject<string>("user");
@@ -105,18 +153,25 @@ namespace TriviaWebAPI.Controllers
                 User u = users.Find(us => us.NickName == q.CreatorNickName);
                 this.questions.Add(q);
                 u?.Questions.Add(q);
-                return true;
+                return Created(q.CreatorNickName,true);
             }
             else
             {
-                Response.StatusCode = (int)System.Net.HttpStatusCode.Forbidden;
-                return false;
+               // Response.StatusCode = (int)System.Net.HttpStatusCode.Forbidden;
+                return Unauthorized(false);
             }
         }
-
+        /// <summary>
+        /// פעולה המוחקת אוביקט שאלה מהמאגר
+        /// </summary>
+        /// <param name="q">השאלה למחיקה</param>
+        /// <returns>אמת אם בוצע ושקר אחרת</returns>
+        /// <response code="200">מחיקה בוצעה</response>
+        /// <response code="404">לא נמצאו רשומות למחיקה</response>
+        /// <response code="403">לא רשאי למחוק</response>
         [Route("DeleteQuestion")]
-        [HttpPost]
-        public bool DeleteQuestion([FromBody] AmericanQuestion q)
+        [HttpDelete]
+        public async Task<ActionResult<bool>> DeleteQuestion([FromBody] AmericanQuestion q)
         {
             //check if login was made
             string user = HttpContext.Session.GetObject<string>("user");
@@ -128,23 +183,30 @@ namespace TriviaWebAPI.Controllers
                     if (item.QText == q.QText && q.CreatorNickName == user)
                     {
                         User u = users.Find(us => us.NickName == q.CreatorNickName);
-                        questions.Remove(item);
+                         questions.Remove(item);
                         u?.Questions.Remove(item);
-                        return true;
+                        return  Ok(true);
                     }
                 }
-                return false;
+                return NotFound(false);
             }
             else
             {
-                Response.StatusCode = (int)System.Net.HttpStatusCode.Forbidden;
-                return false;
+               // Response.StatusCode = (int)System.Net.HttpStatusCode.Forbidden;
+
+                return Unauthorized(false);
             }
         }
-
+        /// <summary>
+        /// רישום יוזר חדש
+        /// </summary>
+        /// <param name="u">אובייקט יוזר</param>
+        /// <returns>אמת אם הצליח ושקר אחרת </returns>
+        /// <response code="201">נוצר בהצלחה</response>
+        /// <response code="409">משתמש כזה כבר קיים</response>
         [Route("RegisterUser")]
         [HttpPost]
-        public bool RegisterUser([FromBody] User u)
+        public async Task<ActionResult<bool>> RegisterUser([FromBody] User u)
         {
             bool found = false;
             foreach (User item in users)
@@ -160,12 +222,12 @@ namespace TriviaWebAPI.Controllers
                     u.Questions = new List<AmericanQuestion>();
 
                 this.users.Add(u);
-                Login(u);
-                return true;
+                await Login(u);
+                return Created(u.NickName,true);
             }
             else
             {
-                return false;
+                return Conflict(false);
             }
         }
     }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TriviaWebAPI.DataTransferObjects;
+using Swashbuckle.AspNetCore.SwaggerUI;
+using Microsoft.OpenApi.Models;
+using System.IO;
+using System.Reflection;
 
 namespace TriviaWebAPI
 {
@@ -90,6 +94,23 @@ namespace TriviaWebAPI
             //without this line of code no routing to the AmericanQueustionsControllerClass will be done
             services.AddControllers();
 
+            #region Add Swagger support
+            services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = "v1",
+                    Title = "Trivia App API DOC",
+                    Description = "שירות המאפשר קבלת שאלות והוספת שאלות טריוויה",
+                   
+                });
+                // using System.Reflection;
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+            });
+
+            #endregion
+
             #region Add Session support
             //The following two commands set the Session state to work!
             services.AddDistributedMemoryCache();
@@ -117,6 +138,13 @@ namespace TriviaWebAPI
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(options =>
+                {
+                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+                    options.RoutePrefix ="AmericanQuestions";
+                }); 
+
             }
 
             app.UseHttpsRedirection();
@@ -130,6 +158,8 @@ namespace TriviaWebAPI
             app.UseRouting();
 
             app.UseAuthorization();
+           
+            
 
             #region Session support
             //Tells the application to use Session!
